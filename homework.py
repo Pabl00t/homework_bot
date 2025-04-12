@@ -125,12 +125,9 @@ def main():
                 if last_status != message:
                     logging.info(
                         'Обнаружено изменение статуса домашней работы.')
-                    try:
-                        send_message(bot, message)
-                        last_status = message
-                        timestamp = int(time.time())
-                    except MessageNotSend as e:
-                        logging.error(f'Ошибка отправки сообщения: {e}')
+                    send_message(bot, message)
+                    last_status = message
+                    timestamp = int(time.time())
             else:
                 logging.debug('Нет новых домашних работ.')
                 message = "Нет новых статусов домашних работ"
