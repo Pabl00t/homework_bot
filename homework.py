@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+from http import HTTPStatus
 
 import requests
 from dotenv import load_dotenv
@@ -31,9 +32,17 @@ load_dotenv()
 
 
 def check_tokens() -> bool:
-    """проверяет доступность переменных окружения."""
-    variables = [PRACTICUM_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN]
-    return all(variables)
+    """Проверяет доступность переменных окружения."""
+    tokens = {
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
+    }
+    missing_tokens = [name for name, value in tokens.items() if not value]
+    for token in missing_tokens:
+        logging.error(
+            f'Отсутствует обязательная переменная окружения: {token}')
+    return not missing_tokens
 
 
 def send_message(bot: TeleBot, message: str) -> None:
@@ -46,54 +55,51 @@ def send_message(bot: TeleBot, message: str) -> None:
         raise MessageNotSend(e)
 
 
-def get_api_answer(timestamp: int) -> None:
+def get_api_answer(timestamp: int) -> dict:
     """Делает запрос к единственному эндпоинту API-сервиса."""
     try:
         response = requests.get(
             ENDPOINT,
             headers=HEADERS,
-            params={'from_date': f'{timestamp}'})
-        logging.debug(
-            f'Запрос к '
-            f'{ENDPOINT} header {HEADERS},'
-            f' параметры {timestamp}'
+            params={'from_date': timestamp}
         )
-        if response.status_code != 200:
-            logging.error(
-                f'Ошибка при запросе к '
-                f'{ENDPOINT}, header {HEADERS},'
-                f' с параметрами {timestamp}')
-            raise RuntimeError()
-        if not response.json():
-            logging.error('Ответ не json')
-    except requests.exceptions.RequestException:
-        raise RuntimeError()
+    except requests.exceptions.RequestException as error:
+        raise ConnectionError(f'Ошибка подключения: {error}')
+
+    if response.status_code != HTTPStatus.OK:
+        raise RuntimeError(
+            f'Ошибка {response.status_code} при запросе к {ENDPOINT}'
+        )
     return response.json()
 
 
 def check_response(response: dict) -> list:
     """Проверяет ответ API на соответствие документации."""
-    logging.debug('Ожидаем ответ от сервера.')
     if not isinstance(response, dict):
-        logging.error('Ответ не словарь.')
-        raise TypeError()
-    if miss_key := {'homeworks', 'current_date'} - response.keys():
-        logging.error(f'В ответе ключи не найдены: {miss_key}')
-        raise KeyNotFound()
-    if not isinstance(response.get('homeworks'), list):
-        raise TypeError()
+        raise TypeError('Ответ API не является словарем')
+
+    required_keys = ['homeworks', 'current_date']
+    missing_keys = [key for key in required_keys if key not in response]
+    if missing_keys:
+        raise KeyNotFound(f'В ответе отсутствуют ключи: {missing_keys}')
+
+    if not isinstance(response['homeworks'], list):
+        raise TypeError('homeworks не является списком')
+
     return response['homeworks']
 
 
 def parse_status(homework: dict) -> str:
     """Извлекает из информацию о статусе домашней работы."""
-    logging.debug('Получаем статус домашней работы.')
     if 'homework_name' not in homework:
         raise KeyError('В ответе нет ключа "homework_name"')
 
-    status = homework.get('status')
+    if 'status' not in homework:
+        raise KeyError('В ответе нет ключа "status"')
+
+    status = homework['status']
     if status not in HOMEWORK_VERDICTS:
-        raise HomeStatusError('Данного статуса работы нет.')
+        raise HomeStatusError(f'Неизвестный статус работы: {status}')
 
     homework_name = homework.get('homework_name')
     verdict = HOMEWORK_VERDICTS.get(status)
@@ -130,7 +136,7 @@ def main():
                     timestamp = int(time.time())
             else:
                 logging.debug('Нет новых домашних работ.')
-                message = "Нет новых статусов домашних работ"
+                message = 'Нет новых статусов домашних работ'
                 if last_status != message:
                     send_message(bot, message)
                     last_status = message
@@ -142,8 +148,8 @@ def main():
                 send_message(bot, message)
             except MessageNotSend as e:
                 logging.error(f'Не удалось отправить сообщение об ошибке: {e}')
-
-        time.sleep(RETRY_PERIOD)
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
