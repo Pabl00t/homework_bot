@@ -114,18 +114,40 @@ def main():
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-            logging.debug('Проверка есть ли новая домашная работа.')
+            logging.debug('Проверка наличия новых домашних работ.')
+
             if homeworks:
-                homeworks = homeworks[0]
-                message = parse_status(homeworks)
-            logging.info('Домашняя работа найдена.')
-            if last_status != message:
-                logging.info('Обнаружили новую домашнюю работу.')
-                send_message(bot, message)
-                last_status = message
+                homework = homeworks[0]
+                message = parse_status(homework)
+                logging.info(
+                    f'Найдена домашняя работа: {
+                        homework.get("homework_name")}'
+                )
+
+                if last_status != message:
+                    logging.info(
+                        'Обнаружено изменение статуса домашней работы.')
+                    try:
+                        send_message(bot, message)
+                        last_status = message
+                        timestamp = int(time.time())
+                    except MessageNotSend as e:
+                        logging.error(f'Ошибка отправки сообщения: {e}')
+            else:
+                logging.debug('Нет новых домашних работ.')
+                message = "Нет новых статусов домашних работ"
+                if last_status != message:
+                    send_message(bot, message)
+                    last_status = message
+
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
+            try:
+                send_message(bot, message)
+            except MessageNotSend as e:
+                logging.error(f'Не удалось отправить сообщение об ошибке: {e}')
+
         time.sleep(RETRY_PERIOD)
 
 
