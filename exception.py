@@ -1,6 +1,10 @@
 class MessageNotSend(Exception):
-    print(Exception)
-    
-    
+    """Ошибка отправки сообщения."""
+
+
 class KeyNotFound(Exception):
-    pass
+    """Ошибка отсутвующих ключей."""
+
+
+class HomeStatusError(Exception):
+    """Ошибка статуса домашней работы."""

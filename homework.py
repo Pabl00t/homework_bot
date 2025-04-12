@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from telebot import TeleBot
 
-from exception import MessageNotSend, KeyNotFound
+from exception import MessageNotSend, KeyNotFound, HomeStatusError
 
 FORMAT = ('%(asctime)s | %(levelname)s | %(funcName)s - %(message)s')
 
@@ -36,7 +36,7 @@ def check_tokens() -> bool:
     return all(variables)
 
 
-def send_message(bot, message) -> None:
+def send_message(bot: TeleBot, message: str) -> None:
     """отправляет сообщение в Telegram-чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
@@ -88,14 +88,16 @@ def check_response(response: dict) -> list:
 def parse_status(homework: dict) -> str:
     """Извлекает из информацию о статусе домашней работы."""
     logging.debug('Получаем статус домашней работы.')
-    try:
-        status = homework['status']
-        verdict = HOMEWORK_VERDICTS[status]
-        homework_name = homework['homework_name']
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    except KeyError:
-        logging.error('А такого мы не ожидали.')
-        raise KeyError()
+    if 'homework_name' not in homework:
+        raise KeyError('В ответе нет ключа "homework_name"')
+
+    status = homework.get('status')
+    if status not in HOMEWORK_VERDICTS:
+        raise HomeStatusError('Данного статуса работы нет.')
+
+    homework_name = homework.get('homework_name')
+    verdict = HOMEWORK_VERDICTS.get(status)
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -107,21 +109,20 @@ def main():
         sys.exit(1)
     timestamp = int(time.time())
     bot = TeleBot(TELEGRAM_TOKEN)
-    status_homeworks = None
+    last_status = None
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
             logging.debug('Проверка есть ли новая домашная работа.')
             if homeworks:
-                logging.info('Домашняя работа найдена.')
-                if homeworks[0] != status_homeworks:
-                    logging.info('Обнаружили новую домашнюю работу.')
-                    bot.polling()
-                    send_message(bot, parse_status(homeworks[0]))
-                    status_homeworks = homeworks[0]
-            else:
-                logging.debug('Новой домашней работы не обнаруженно.')
+                homeworks = homeworks[0]
+                message = parse_status(homeworks)
+            logging.info('Домашняя работа найдена.')
+            if last_status != message:
+                logging.info('Обнаружили новую домашнюю работу.')
+                send_message(bot, message)
+                last_status = message
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
