@@ -86,9 +86,7 @@ def check_response(response: dict) -> list:
 
 
 def parse_status(homework: dict) -> str:
-    """
-    Извлекает из информации о конкретной домашней работе статус этой работы.
-    """
+    """Извлекает из информацию о статусе домашней работы."""
     logging.debug('Получаем статус домашней работы.')
     try:
         status = homework['status']
