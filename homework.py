@@ -119,10 +119,8 @@ def main():
             if homeworks:
                 homework = homeworks[0]
                 message = parse_status(homework)
-                logging.info(
-                    f'Найдена домашняя работа: {
-                        homework.get("homework_name")}'
-                )
+                logging.info(f'Найдена домашняя работа: '
+                             f'{homework.get("homework_name")}')
 
                 if last_status != message:
                     logging.info(
