@@ -125,7 +125,6 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
-            break
         time.sleep(RETRY_PERIOD)
 
 
