@@ -54,10 +54,15 @@ def get_api_answer(timestamp: int) -> None:
             headers=HEADERS,
             params={'from_date': f'{timestamp}'})
         logging.debug(
-            f'Запрос к {ENDPOINT} header {HEADERS}, параметры {timestamp}')
+            f'Запрос к '
+            f'{ENDPOINT} header {HEADERS},'
+            f' параметры {timestamp}'
+        )
         if response.status_code != 200:
             logging.error(
-                f'Ошибка при запросе к {ENDPOINT}, header {HEADERS}, с параметрами {timestamp}')
+                f'Ошибка при запросе к '
+                f'{ENDPOINT}, header {HEADERS},'
+                f' с параметрами {timestamp}')
             raise RuntimeError()
         if not response.json():
             logging.error('Ответ не json')

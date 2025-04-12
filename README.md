@@ -1,7 +1,7 @@
 # homework_bot
 Python телеграмм бот, на библиотеке ``pyTelegramBotAPI==4.14.1``.
 Данный телеграмм бот отслеживает ваши домашние работы на платформе 
-[Яндекс Практикум *](https://practicum.yandex.ru/referrals/?ref_code=gAAAAABn-ctNNdblcxYaD1638rz_KIun20JOMOAiN-QLM1Wez7GzwtobKosUFaHLpuS9swKumC-PpFQ9NPjdfGsnCZ1uR76Iew%3D%3D). 
+[Яндекс Практикум *](https://practicum.yandex.ru/referrals/?ref_code=gAAAAABn-ctNNdblcxYaD1638rz_KIun20JOMOAiN-QLM1Wez7GzwtobKosUFaHLpuS9swKumC-PpFQ9NPjdfGsnCZ1uR76Iew%3D%3D).
 
 ## Как запустить бота?
  1. Установить python версии 3.11 или новее.
